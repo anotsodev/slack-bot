@@ -1,6 +1,4 @@
 # This guide helped me to understand the basics on how to make one: https://www.fullstackpython.com/blog/build-first-slack-bot-python.html
-#
-# Author: Kyle Halog
 
 import time
 import sys
