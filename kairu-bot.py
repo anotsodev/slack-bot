@@ -1,17 +1,22 @@
+# This is my first time to write a slack bot in python. 
+# This guide helped me to understand the basics on how to make one: https://www.fullstackpython.com/blog/build-first-slack-bot-python.html
 #
-# This is my first time to write a slack bot in python. This guide helped me to
-# understand the basics on making one: https://www.fullstackpython.com/blog/build-first-slack-bot-python.html
-#
+# Author: Kyle Halog
 
 import time
+import sys
 from slackclient import SlackClient
+from twitter import *
+
+config = {}
+execfile("config.py", config)
 
 #bot's id 
-BOT_ID = ''
+BOT_ID = config["bot_id"]
 
 # instantiate slack
-# always secure the api token
-slack_client = SlackClient('')
+# Note: always secure the api token
+slack_client = SlackClient(config["slack_api"])
 
 AT_BOT = "<@" + BOT_ID + ">"
 
@@ -19,19 +24,63 @@ AT_BOT = "<@" + BOT_ID + ">"
 EXAMPLE_COMMANDS = "help, retrieve, autoretrieve"
 COMMANDS = ['help', 'retrieve', 'autoretrieve']
 
+#constants
+DEFAULT_INTERVAL = 5
+
+def auto_retrieve(channel, start, default_interval):
+	n = default_interval;
+	response = "Starting...\n"
+	time.sleep(3)
+	response += "Will retrieve statuses from the infosec list every 1 hour. Auto Retrieve Intervals = "+str(DEFAULT_INTERVAL)+"\n"
+	slack_client.api_call("chat.postMessage", channel=channel,
+							  	text=response, as_user=True)
+	while start and n > 0:
+		response = retrieve()
+		slack_client.api_call("chat.postMessage", channel=channel,
+							  	text=response, as_user=True)
+		n-=1
+		time.sleep(3)
+	return "Auto retrieval stopped."
+
+def retrieve():
+	# will use this example on retrieving tweets https://github.com/ideoforms/python-twitter-examples/blob/master/twitter-home-timeline.py
+	# config.py https://github.com/ideoforms/python-twitter-examples/blob/master/config.py
+	response = ""
+	response += "Retrieving 50 tweets... \n\n"
+
+	users = [ "kylehalog" ]
+
+	twitter = Twitter(auth = OAuth(config["access_key"], config["access_secret"], config["consumer_key"], config["consumer_secret"]))
+
+	for user in users:
+		result = twitter.lists.list(screen_name = user)
+		for list in result:
+			list_slug = list["slug"]
+			list_str_id = list["id"]
+			tweet_count = 50
+			statuses = twitter.lists.statuses(slug = list_slug, list_id = list_str_id, count = tweet_count)
+			for status in statuses:
+				response += "(%s) @%s %s" % (status["created_at"], status["user"]["screen_name"], status["text"]) + "\n"
+	return response
 
 def command_handler(command, channel):
 
 	response = "Sorry but I don't get what you mean. I can only understand these commands: " + EXAMPLE_COMMANDS
 	if command in COMMANDS:
-		#response = "Sure...write some more code then I can do that!"
 		if command == 'help':
 			response = "\
 			List of available commands: \n \
 			help - display this message\n \
 			retrieve - retrieve and output the latest tweets about infosec\n \
-			autoretrieve - automatically retrieve and output tweets about infosec every after 1 hour"
-	
+			autoretrieve - automatically retrieve and output tweets about infosec every 1 hour"
+		
+		elif command == 'retrieve':
+			response = retrieve()
+
+		elif command == 'autoretrieve':
+			response = auto_retrieve(channel, True, DEFAULT_INTERVAL)
+			
+				
 	slack_client.api_call("chat.postMessage", channel=channel,
 						  text=response, as_user=True)
 def slack_output_parser(rtm_output):
