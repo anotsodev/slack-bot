@@ -1,4 +1,3 @@
-# This is my first time to write a slack bot in python. 
 # This guide helped me to understand the basics on how to make one: https://www.fullstackpython.com/blog/build-first-slack-bot-python.html
 #
 # Author: Kyle Halog
@@ -39,7 +38,8 @@ def auto_retrieve(channel, start, default_interval):
 		slack_client.api_call("chat.postMessage", channel=channel,
 							  	text=response, as_user=True)
 		n-=1
-		time.sleep(3)
+		# 3600 seconds = 1 hour
+		time.sleep(3600)
 	return "Auto retrieval stopped."
 
 def retrieve():
